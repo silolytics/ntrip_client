@@ -4,19 +4,19 @@
   <!-- Standalone example launch file for an ntrip client -->
 
   <!-- Declare arguments with default values -->
-  <arg name="host"                   default = "20.185.11.35" />
+  <arg name="host"                   default = "sapos.geonord-od.de" />
   <arg name="port"                   default = "2101" />
-  <arg name="mountpoint"             default = "VTRI_RTCM3" />
+  <arg name="mountpoint"             default = "RTCM4G" />
   <arg name="authenticate"           default = "true" />
-  <arg name="username"               default = "user" />
-  <arg name="password"               default = "pass" />
+  <arg name="username"               default = "gast" />
+  <arg name="password"               default = "gast" />
   <arg name="ntrip_version"          default = "" />
   <arg name="ssl"                    default = "false" />
   <arg name="cert"                   default = "" />
   <arg name="key"                    default = "" />
   <arg name="ca_cert"                default = "" />
   <arg name="debug"                  default = "false" />
-  <arg name="rtcm_message_package"   default = "mavros_msgs" />
+  <arg name="rtcm_message_package"   default = "rtcm_msgs" />
 
   <!-- Set the log level to debug -->
   <env name="NTRIP_CLIENT_DEBUG" value="$(arg debug)" />

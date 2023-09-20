@@ -4,10 +4,12 @@ import os
 import sys
 import json
 import importlib
-
+import time
+import datetime
+from math import floor
 import rospy
 from std_msgs.msg import Header
-from nmea_msgs.msg import Sentence
+from nmea_msgs.msg import Sentence, Gpgga
 
 from ntrip_client.ntrip_client import NTRIPClient
 from ntrip_client.nmea_parser import NMEA_DEFAULT_MAX_LENGTH, NMEA_DEFAULT_MIN_LENGTH
@@ -104,6 +106,7 @@ class NTRIPRos:
     self._client.cert = rospy.get_param('~cert', None)
     self._client.key = rospy.get_param('~key', None)
     self._client.ca_cert = rospy.get_param('~ca_cert', None)
+    self.last_nmea_time = rospy.Time.now()
 
     # Set parameters on the client
     self._client.nmea_parser.nmea_max_length = rospy.get_param('~nmea_max_length', NMEA_DEFAULT_MAX_LENGTH)
@@ -111,6 +114,34 @@ class NTRIPRos:
     self._client.reconnect_attempt_max = rospy.get_param('~reconnect_attempt_max', NTRIPClient.DEFAULT_RECONNECT_ATTEMPT_MAX)
     self._client.reconnect_attempt_wait_seconds = rospy.get_param('~reconnect_attempt_wait_seconds', NTRIPClient.DEFAULT_RECONNECT_ATEMPT_WAIT_SECONDS)
     self._client.rtcm_timeout_seconds = rospy.get_param('~rtcm_timeout_seconds', NTRIPClient.DEFAULT_RTCM_TIMEOUT_SECONDS)
+  
+
+  def gen_gga(self, time_t, lat, lat_pole, lng, lng_pole, fix_quality, num_sats, hdop, alt_m, geoidal_sep_m, dgps_age_sec, dgps_ref_id):
+    dt_object = datetime.datetime.fromtimestamp(time_t)
+    hhmmssss = '%02d%02d%02d%s' % (dt_object.hour, dt_object.minute, dt_object.second, '.%02d' if 0 != 0 else '')
+    lat_abs = abs(lat)
+    lat_deg = lat_abs
+    lat_min = (lat_abs - floor(lat_deg)) * 60
+    lat_sec = round((lat_min - floor(lat_min)) * 1000)
+    lat_pole_prime = ('S' if lat_pole == 'N' else 'N') if lat < 0 else lat_pole
+    lat_format = '%02d%02d.%03d' % (lat_deg, lat_min, lat_sec)
+
+    lng_abs = abs(lng)
+    lng_deg = lng_abs
+    lng_min = (lng_abs - floor(lng_deg)) * 60
+    lng_sec = round((lng_min - floor(lng_min)) * 1000)
+    lng_pole_prime = ('W' if lng_pole == 'E' else 'E') if lng < 0 else lng_pole
+    lng_format = '%03d%02d.%03d' % (lng_deg, lng_min, lng_sec)
+
+    dgps_format = '%s,%s' % ('%.1f' % dgps_age_sec if dgps_age_sec is not None else '', '%04d' % dgps_ref_id if dgps_ref_id is not None else '')
+
+    str = 'GPGGA,%s,%s,%s,%s,%s,%d,%02d,%.1f,%.1f,M,%.1f,M,%s' % (hhmmssss, lat_format, lat_pole_prime, lng_format, lng_pole_prime, fix_quality, num_sats, hdop, alt_m, geoidal_sep_m, dgps_format)
+    crc = 0
+    for c in str:
+      crc = crc ^ ord(c)
+    crc = crc & 0xFF
+
+    return '$%s*%0.2X' % (str, crc)
 
   def run(self):
     # Setup a shutdown hook
@@ -122,10 +153,10 @@ class NTRIPRos:
       return 1
 
     # Setup our subscriber
-    self._nmea_sub = rospy.Subscriber('nmea', Sentence, self.subscribe_nmea, queue_size=10)
+    self._nmea_sub = rospy.Subscriber('/gpgga', Gpgga, self.subscribe_nmea, queue_size=2)
 
     # Start the timer that will check for RTCM data
-    self._rtcm_timer = rospy.Timer(rospy.Duration(0.1), self.publish_rtcm)
+    self._rtcm_timer = rospy.Timer(rospy.Duration(1.0), self.publish_rtcm)
 
     # Spin until we are shutdown
     rospy.spin()
@@ -141,11 +172,21 @@ class NTRIPRos:
 
   def subscribe_nmea(self, nmea):
     # Just extract the NMEA from the message, and send it right to the server
-    self._client.send_nmea(nmea.sentence)
+    duration = rospy.Duration(rospy.Time.now().to_sec() - self.last_nmea_time.to_sec())
+    if(nmea.lat != 0.0 and int(duration.to_sec()) > 1.0):
+      time = rospy.Time.now()
+      self.last_nmea_time = time
+      time = time.to_sec()
+      if(nmea.station_id == ''):
+        nmea.station_id = 0
+      nmea_sentence = self.gen_gga(time, nmea.lat, nmea.lat_dir, nmea.lon, nmea.lon_dir, nmea.gps_qual, 
+                                    nmea.num_sats, nmea.hdop, nmea.alt, nmea.undulation, int(nmea.diff_age), int(nmea.station_id))
+      self._client.send_nmea(nmea_sentence)
 
   def publish_rtcm(self, event):
     for raw_rtcm in self._client.recv_rtcm():
-      self._rtcm_pub.publish(self._create_rtcm_message(raw_rtcm))
+      msg = self._create_rtcm_message(raw_rtcm)
+      self._rtcm_pub.publish(msg)
 
   def _create_mavros_msgs_rtcm_message(self, rtcm):
     return mavros_msgs_RTCM(
