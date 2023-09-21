@@ -173,7 +173,7 @@ class NTRIPRos:
   def subscribe_nmea(self, nmea):
     # Just extract the NMEA from the message, and send it right to the server
     duration = rospy.Duration(rospy.Time.now().to_sec() - self.last_nmea_time.to_sec())
-    if(nmea.lat != 0.0 and nmea.num_sat > 4 and int(duration.to_sec()) > 1.0):
+    if(nmea.lat != 0.0 and nmea.num_sats > 4 and int(duration.to_sec()) > 1.0):
       time = rospy.Time.now()
       self.last_nmea_time = time
       time = time.to_sec()
