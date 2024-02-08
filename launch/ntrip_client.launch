@@ -4,12 +4,12 @@
   <!-- Standalone example launch file for an ntrip client -->
 
   <!-- Declare arguments with default values -->
-  <arg name="host"                   default = "$(optenv NTRIP_HOST sapos.geonord-od.de)" />
-  <arg name="port"                   default = "$(optenv NTRIP_PORT 2101)" />
-  <arg name="mountpoint"             default = "$(optenv NTRIP_MOUNTPOINT RTCM4G)" />
+  <arg name="host"                   default = "ntrip.movertk.nl" />
+  <arg name="port"                   default = "2101" />
+  <arg name="mountpoint"             default = "VRS_GRE_RTCM3.2" />
   <arg name="authenticate"           default = "true" />
-  <arg name="username"               default = "$(optenv NTRIP_USERNAME gast)" />
-  <arg name="password"               default = "$(optenv NTRIP_PASSWORD gast)" />
+  <arg name="username"               default = "mraeres06" />
+  <arg name="password"               default = "8405" />
   <arg name="ntrip_version"          default = "" />
   <arg name="ssl"                    default = "false" />
   <arg name="cert"                   default = "" />
