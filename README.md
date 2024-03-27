@@ -2,8 +2,15 @@
 
 ## Description
 
-ROS node that will communicate with an NTRP caster to receive RTCM connections and publish them on a ROS topic. Also works with virtual NTRIP servers by subscribing to NMEA
+ROS node that will communicate with an NTRP caster to receive RTCM connections and publish them on a ROS topic. Also works with virtual NTRIP servers by subscribing to gpgga messages
 messages and sending them to the NTRIP server
+
+## Concept for configuration
+The Node uses the concept of lifecycles. This concept is used to configure the account information of the ntrip serrver and reconnect to the server if the user saves inputs. </br>
+This is done by environment variables. If specific environment variables are set, this values are override the values from the param file. The lifecycle concept allows to configure the node through services and keep a clean seperation. 
+
+
+
 
 #### Important Branches
 There are two important branches that you may want to checkout:
