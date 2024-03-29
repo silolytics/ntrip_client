@@ -1,0 +1,8 @@
+Metadata-Version: 2.1
+Name: ntrip_client
+Version: 0.0.0
+Summary: TODO: Package description
+Maintainer: ros
+Maintainer-email: t.junge@silolytics.de
+License: TODO: License declaration
+Requires-Dist: setuptools
