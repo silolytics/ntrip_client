@@ -26,13 +26,13 @@ def generate_launch_description():
           'node_name',             default_value='ntrip_client'),
       DeclareLaunchArgument('debug',                 default_value='false'),
       DeclareLaunchArgument(
-          'host',                  default_value='ntrip.movertk.nl'),
+          'host',                  default_value="sapos.geonord-od.de"),
       DeclareLaunchArgument('port',                  default_value='2101'),
       DeclareLaunchArgument(
-          'mountpoint',            default_value='VRS_GRE_RTCM3.2'),
-      DeclareLaunchArgument('username',              default_value='mraeres06'),
+          'mountpoint',            default_value='RTCM4G'),
+      DeclareLaunchArgument('username',              default_value='gast'),
       #This is not used since it does not handle digits correct
-      DeclareLaunchArgument('password',              default_value='"8405"'),
+      DeclareLaunchArgument('password',              default_value='gast'),
       DeclareLaunchArgument('ssl',                   default_value='False'),
       DeclareLaunchArgument('cert',                  default_value='None'),
       DeclareLaunchArgument('key',                   default_value='None'),
