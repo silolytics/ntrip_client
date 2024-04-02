@@ -1,4 +1,5 @@
 # Python artifacts
+*.egg
 *.pyc
 __pycache__
 

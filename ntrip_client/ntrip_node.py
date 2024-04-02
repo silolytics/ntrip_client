@@ -40,21 +40,6 @@ class NTRIPRos(Node):
         self._rtcm_timer: Optional[Timer] = None
         self._diag_timer: Optional[Timer] = None
         super().__init__(node_name, **kwargs)
-
-    def on_configure(self, state: State) -> TransitionCallbackReturn:
-        """
-        Configure the node, after a configuring transition is requested.
-
-        on_configure callback is being called when the lifecycle node
-        enters the "configuring" state.
-
-        :return: The state machine either invokes a transition to the "inactive" state or stays
-            in "unconfigured" depending on the return value.
-            TransitionCallbackReturn.SUCCESS transitions to "inactive".
-            TransitionCallbackReturn.FAILURE transitions to "unconfigured".
-            TransitionCallbackReturn.ERROR or any uncaught exceptions to "errorprocessing"
-        """
-        self.get_logger().fatal("############ Configure state")
         self.declare_parameter('host', '127.0.0.1')
         self.declare_parameter('port', 2101)
         self.declare_parameter('mountpoint', 'mountpoint')
@@ -73,46 +58,31 @@ class NTRIPRos(Node):
                                NTRIPClient.DEFAULT_RECONNECT_ATEMPT_WAIT_SECONDS)
         self.declare_parameter('rtcm_timeout_seconds',
                                NTRIPClient.DEFAULT_RTCM_TIMEOUT_SECONDS)
-     
 
+    def on_configure(self, state: State) -> TransitionCallbackReturn:
+        """
+        Configure the node, after a configuring transition is requested.
+
+        on_configure callback is being called when the lifecycle node
+        enters the "configuring" state.
+
+        :return: The state machine either invokes a transition to the "inactive" state or stays
+            in "unconfigured" depending on the return value.
+            TransitionCallbackReturn.SUCCESS transitions to "inactive".
+            TransitionCallbackReturn.FAILURE transitions to "unconfigured".
+            TransitionCallbackReturn.ERROR or any uncaught exceptions to "errorprocessing"
+        """
+        self.get_logger().fatal("############ Configure state")
         # Read some mandatory config
         host = self.get_parameter('host').value
         port = self.get_parameter('port').value
         self.get_logger().error("Der node ist {}".format(host))
         mountpoint = self.get_parameter('mountpoint').value
-        # Check if environment variables are set. This overide the default values
-        if (os.getenv('HOST') is not None):
-            host = os.getenv('HOST')
-
-            host_new = rclpy.parameter.Parameter(
-                'host',
-                rclpy.Parameter.Type.STRING,
-                host
-            )
-            self.set_parameters([host_new])
         self.get_logger().fatal("host:{} , port:{} , mountpoint:{}".format(
-            self.get_parameter('host').value,
-            self.get_parameter('port').value,
-            self.get_parameter('mountpoint').value))
-        if (os.getenv('MOUNTPOINT') is not None):
-            mountpoint = os.getenv('MOUNTPOINT')
+        self.get_parameter('host').value,
+        self.get_parameter('port').value,
+        self.get_parameter('mountpoint').value))
 
-            mountpoint_new = rclpy.parameter.Parameter(
-                'mountpoint',
-                rclpy.Parameter.Type.STRING,
-                mountpoint
-            )
-            self.set_parameters([mountpoint_new])
-
-        if (os.getenv('PORT') is not None):
-            port = os.getenv('PORT')
-
-            port_new = rclpy.parameter.Parameter(
-                'port',
-                rclpy.Parameter.Type.STRING,
-                port
-            )
-            self.set_parameters([port_new])
 
         # We don't use the ntrip version since the node fails here
         # self.get_logger().warn("Value auth {}".format(self.get_parameter('authenticate').value))
@@ -124,26 +94,6 @@ class NTRIPRos(Node):
 
         username = self.get_parameter('username').value
         password = self.get_parameter('password').value
-            
-        if (os.getenv('USERNAME') is not None):
-                username = os.getenv('USERNAME')
-
-                username_new = rclpy.parameter.Parameter(
-                    'username',
-                    rclpy.Parameter.Type.STRING,
-                    username
-                )
-                self.set_parameters([username_new])
-
-        if (os.getenv('PASSWORD') is not None):
-                password = str(os.getenv('PASSWORD'))
-
-                password_new = rclpy.parameter.Parameter(
-                    'password',
-                    rclpy.Parameter.Type.STRING,
-                    password
-                )
-                self.set_parameters([password_new])
 
         # Last nmea time
         self.last_nmea_time = self.get_clock().now()
@@ -257,7 +207,12 @@ class NTRIPRos(Node):
             TransitionCallbackReturn.FAILURE transitions to "inactive".
             TransitionCallbackReturn.ERROR or any uncaught exceptions to "errorprocessing"
         """
-        self.stop()
+        self.destroy_timer(self._rtcm_timer)
+        self.destroy_timer(self._diag_timer)
+        self.destroy_publisher(self._rtcm_pub)
+        self.destroy_publisher(self._diagnostic_pub)
+        self.get_logger().info('Disconnecting NTRIP client')
+        self._client.disconnect()
 
         self.get_logger().info('Ntrip on_cleanup() is called.')
         return TransitionCallbackReturn.SUCCESS
@@ -329,7 +284,24 @@ class NTRIPRos(Node):
         """Stop the Ntrip service
         """
         self.get_logger().info('Stopping RTCM publisher')
-
+        self.undeclare_parameter('host', '127.0.0.1')
+        self.undeclare_parameter('port', 2101)
+        self.undeclare_parameter('mountpoint', 'mountpoint')
+        self.undeclare_parameter('username', '')
+        self.undeclare_parameter('password', '')
+        self.undeclare_parameter('ssl', False)
+        self.undeclare_parameter('cert', 'None')
+        self.undeclare_parameter('key', 'None')
+        self.undeclare_parameter('ca_cert', 'None')
+        self.undeclare_parameter('rtcm_frame_id', 'odom')
+        self.undeclare_parameter('nmea_max_length', NMEA_DEFAULT_MAX_LENGTH)
+        self.undeclare_parameter('nmea_min_length', NMEA_DEFAULT_MIN_LENGTH)
+        self.undeclare_parameter('reconnect_attempt_max',
+                              NTRIPClient.DEFAULT_RECONNECT_ATTEMPT_MAX)
+        self.undeclare_parameter('reconnect_attempt_wait_seconds',
+                              NTRIPClient.DEFAULT_RECONNECT_ATEMPT_WAIT_SECONDS)
+        self.undeclare_parameter('rtcm_timeout_seconds',
+                               NTRIPClient.DEFAULT_RTCM_TIMEOUT_SECONDS)
         self.destroy_timer(self._rtcm_timer)
         self.destroy_timer(self._diag_timer)
         self.destroy_publisher(self._rtcm_pub)
