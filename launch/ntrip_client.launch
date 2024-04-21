@@ -8,8 +8,8 @@
   <arg name="port"                   default = "2101" />
   <arg name="mountpoint"             default = "VRS_GRE_RTCM3.2" />
   <arg name="authenticate"           default = "true" />
-  <arg name="username"               default = "mraeres06" />
-  <arg name="password"               default = "8405" />
+  <arg name="username"               default = "" />
+  <arg name="password"               default = "" />
   <arg name="ntrip_version"          default = "" />
   <arg name="ssl"                    default = "false" />
   <arg name="cert"                   default = "" />
