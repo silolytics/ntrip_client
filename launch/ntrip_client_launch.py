@@ -46,6 +46,8 @@ def generate_launch_description():
             namespace=LaunchConfiguration('namespace'),
             package='ntrip_client',
             executable='ntrip_node',
+            respawn=True,
+            respawn_delay=4,
             parameters=[
                {
                   # Required parameters used to connect to the NTRIP server

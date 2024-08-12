@@ -13,6 +13,7 @@ import rclpy
 # respectively.
 # In case of ambiguity, the more explicit names can be imported.
 
+import rclpy.duration
 from rclpy.lifecycle import Node
 from rclpy.lifecycle import Publisher
 from rclpy.lifecycle import State
@@ -103,8 +104,10 @@ class NTRIPRos(Node):
         self._create_rtcm_message = self._create_rtcm_msgs_rtcm_message
         # Setup the RTCM publisher
         # Application setup starts
+        node_name = self.get_name()
+        rtcm_topic_name = '/' + node_name + '/rtcm'
         self._rtcm_pub = self.create_lifecycle_publisher(
-            self._rtcm_message_type, 'rtcm', 10)
+            self._rtcm_message_type, rtcm_topic_name, 10)
         # Create timer for rtcm
         self._rtcm_timer = self.create_timer(1.0, self.publish_rtcm)
         # Initialize the client
@@ -162,7 +165,7 @@ class NTRIPRos(Node):
 
         # Create subsriber for gga
         self._gga_sub = self.create_subscription(
-            Gpgga, '/gpgga', self.subscribe_gga, 2)
+            Gpgga, '/septentrio_gnss/gpgga', self.subscribe_gga, 2)
         self._diagnostic_pub = self.create_lifecycle_publisher(DiagnosticArray,
                                                                '/diagnostics',
                                                                qos_profile_system_default)
@@ -241,6 +244,7 @@ class NTRIPRos(Node):
         self._diagnostic_pub.publish(self._diag_array)
 
     def publish_rtcm(self):
+        self.get_logger().warn("Publish rtcm")
         for raw_rtcm in self._client.recv_rtcm():
             self._rtcm_pub.publish(self._create_rtcm_message(raw_rtcm))
 
@@ -268,16 +272,16 @@ class NTRIPRos(Node):
         Args:
             nmea (_type_): _description_
         """
-        duration = rclpy.Duration(
-            self.get_clock().now().to_sec() - self.last_nmea_time.to_sec())
-        if (gga.lat != 0.0 and gga.num_sats > 4 and int(duration.to_sec()) > 1.0):
+        duration = self.get_clock().now() - self.last_nmea_time
+        if (gga.lat != 0.0 and gga.num_sats > 4 and int(duration.nanoseconds/1e9) > 1.0):
             time = self.get_clock().now()
             self.last_nmea_time = time
-            time = time.to_sec()
+            time = time.seconds_nanoseconds()[0]
             if (gga.station_id == ''):
-                gga.station_id = 0
+                gga.station_id = '0'
             nmea_sentence = self.gen_gga(time, gga.lat, gga.lat_dir, gga.lon, gga.lon_dir, gga.gps_qual,
                                          gga.num_sats, gga.hdop, gga.alt, gga.undulation, int(gga.diff_age), int(gga.station_id))
+            self.get_logger().warn("Send nmea")
             self._client.send_nmea(nmea_sentence)
 
     def stop(self):
