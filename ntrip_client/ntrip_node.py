@@ -169,7 +169,6 @@ class NTRIPRos(Node):
         self._diagnostic_pub = self.create_lifecycle_publisher(DiagnosticArray,
                                                                '/diagnostics',
                                                                qos_profile_system_default)
-        self.get_logger().warn("Sind vor gga")
         timer_period = 2.0
         self._diag_timer = self.create_timer(
             timer_period, self.diagnostic_callback)
@@ -244,7 +243,6 @@ class NTRIPRos(Node):
         self._diagnostic_pub.publish(self._diag_array)
 
     def publish_rtcm(self):
-        self.get_logger().warn("Publish rtcm")
         for raw_rtcm in self._client.recv_rtcm():
             self._rtcm_pub.publish(self._create_rtcm_message(raw_rtcm))
 
