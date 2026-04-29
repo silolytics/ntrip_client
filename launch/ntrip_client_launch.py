@@ -19,11 +19,11 @@ def generate_launch_description():
         parameters=[
             {
                 # Required parameters used to connect to the NTRIP server
-                "host": "sapos.geonord-od.de",
+                "host": "ntrip.movertk.nl",
                 "port": 2101,
-                "mountpoint": "RTCM4G",
-                "username": "gast",
-                "password": "gast",
+                "mountpoint": "ntrip.movertk.nl",
+                "username": "mraeres06",
+                "password": "8405",
                 # Whether to connect with SSL. cert, key, and ca_cert options will only take effect if this is true
                 "ssl": False,
                 # If the NTRIP caster uses cert based authentication, you can specify the cert and keys to use with these options
