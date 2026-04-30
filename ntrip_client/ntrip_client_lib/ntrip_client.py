@@ -51,6 +51,7 @@ class NTRIPClient:
     # Initialize this so we don't throw an exception when closing
     self._raw_socket = None
     self._server_socket = None
+    self._disconnect_time = None
 
     # Setup some parsers to parse incoming messages
     self.rtcm_parser = RTCMParser(
@@ -90,7 +91,17 @@ class NTRIPClient:
     self.reconnect_attempt_wait_seconds = self.DEFAULT_RECONNECT_ATEMPT_WAIT_SECONDS
     self.rtcm_timeout_seconds = self.DEFAULT_RTCM_TIMEOUT_SECONDS
 
+  _MIN_RECONNECT_INTERVAL_S = 5.0
+
   def connect(self):
+    # Rate-limit reconnections: the caster returns 401 if we reconnect too quickly
+    if self._disconnect_time is not None:
+      elapsed = time.time() - self._disconnect_time
+      if elapsed < self._MIN_RECONNECT_INTERVAL_S:
+        wait = self._MIN_RECONNECT_INTERVAL_S - elapsed
+        self._loginfo('Waiting {:.1f}s before reconnecting to respect caster rate limit'.format(wait))
+        time.sleep(wait)
+
     # Create a socket object that we will use to connect to the server
     self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     self._server_socket.settimeout(5)
@@ -168,6 +179,7 @@ class NTRIPClient:
   def disconnect(self):
     # Disconnect the socket
     self._connected = False
+    self._disconnect_time = time.time()
     try:
       if self._server_socket:
         self._server_socket.shutdown(socket.SHUT_RDWR)
@@ -190,6 +202,7 @@ class NTRIPClient:
       while not self._shutdown:
         self._reconnect_attempt_count += 1
         self.disconnect()
+        time.sleep(self.reconnect_attempt_wait_seconds)
         connect_success = self.connect()
         if not connect_success and self._reconnect_attempt_count < self.reconnect_attempt_max:
           self._logerr('Reconnect to http://{}:{} failed. Retrying in {} seconds'.format(self._host, self._port, self.reconnect_attempt_wait_seconds))

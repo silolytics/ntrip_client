@@ -243,6 +243,10 @@ class NTRIPRos(Node):
         self._diagnostic_pub.publish(self._diag_array)
 
     def publish_rtcm(self):
+        if not self._client._connected:
+            self.get_logger().info('NTRIP not connected, retrying...')
+            if not self._client.connect():
+                return
         for raw_rtcm in self._client.recv_rtcm():
             self._rtcm_pub.publish(self._create_rtcm_message(raw_rtcm))
 
